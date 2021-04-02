@@ -22,11 +22,124 @@ from time import sleep
 def getImage_pp(img):
 	return img.copy()
 
-def getImage_ld(img,lane_info):
-	return img.copy()
+# ===================================== LANE DETECTION VISUALIZATION ===============================
+def get_vertices_for_img(img):
+	img_shape = img.shape
+	height = img_shape[0]
+	width = img_shape[1]
+
+	region_top_left     = (0.00*width, 0.30*height)
+	region_top_right    = (1.00*width, 0.30*height)
+	region_bottom_left  = (0.00*width, 1.00*height)
+	region_bottom_right = (1.00*width, 1.00*height)
+
+	vert = np.array([[region_bottom_left , region_top_left, region_top_right, region_bottom_right]], dtype=np.int32)
+	return vert
+
+def draw_lines(img, lines, color=[255, 0, 0], thickness=10, make_copy=True):
+	# Copy the passed image
+	img_copy = np.copy(img) if make_copy else img
+
+	for line in lines:
+		for x1,y1,x2,y2 in line:
+			cv2.line(img_copy, (x1, y1), (x2, y2), color, thickness)
+
+	return img_copy
+
+def trace_lane_line_with_coefficients(img, line_coefficients, top_y, make_copy=True):
+	A = line_coefficients[0]
+	b = line_coefficients[1]
+	if A==0.0 and b==0.0:
+		img_copy = np.copy(img) if make_copy else img
+		return img_copy
+
+	height, width,_ = img.shape
+	bottom_y = height - 1
+	# y = Ax + b, therefore x = (y - b) / A
+	bottom_x = (bottom_y - b) / A
+	# clipping the x values
+	bottom_x = min(bottom_x, 2*width)
+	bottom_x = max(bottom_x, -1*width)
+
+	top_x = (top_y - b) / A
+	# clipping the x values
+	top_x = min(top_x, 2*width)
+	top_x = max(top_x, -1*width)
+
+	new_lines = [[[int(bottom_x), int(bottom_y), int(top_x), int(top_y)]]]
+	return draw_lines(img, new_lines, make_copy=make_copy)
+
+def drawIntersectionLine(img, y_intercept, make_copy=True):
+	_, width,_ = img.shape
+	line = [[[0, int(y_intercept), width, int(y_intercept)]]]
+	return draw_lines(img, line,color=[0, 255, 0], make_copy=make_copy)
+
+def getImage_ld(image_in, lane_info, intersection_y):
+	vert = get_vertices_for_img(image_in)
+	left_coefficients = lane_info[0]
+	right_coefficients = lane_info[1]
+	region_top_left = vert[0][1]
+
+	lane_img_left = trace_lane_line_with_coefficients(image_in, left_coefficients, region_top_left[1], make_copy=True)
+
+	if intersection_y == -1:
+		lane_img_final = trace_lane_line_with_coefficients(lane_img_left, right_coefficients, region_top_left[1], make_copy=False)
+	else:
+		lane_img_both = trace_lane_line_with_coefficients(lane_img_left, right_coefficients, region_top_left[1], make_copy=True)
+		lane_img_final = drawIntersectionLine(lane_img_both,intersection_y, make_copy=False)
+
+	# image1 * alpha + image2 * beta + lambda
+	# image1 and image2 must be the same shape.
+	img_with_lane_weight =  cv2.addWeighted(image_in, 0.7, lane_img_final, 0.3, 0.0)
+
+	return img_with_lane_weight
+
+# ===================================== OBJECT DETECTION VISUALIZATION ===============================
+LABEL_DICT = {0: 'bike',
+                1.0: 'bus',
+                2.0: 'car',
+                3.0: 'motor',
+                4.0: 'person',
+                5.0: 'rider',
+                6.0: 'traffic_light',
+                7.0: 'ts_priority',
+                7.1: 'ts_stop',
+                7.2: 'ts_no_entry',
+                7.3: 'ts_one_way',
+                7.4: 'ts_crossing',
+                7.5: 'ts_fw_entry',
+                7.6: 'ts_fw_exit',
+                7.7: 'ts_parking',
+                7.8: 'ts_roundabout',
+                8.0: 'train',
+                9.0: 'truck'
+            }
+COLORS = np.random.randint(0, 255, size=(len(LABEL_DICT), 3), dtype="uint8")
 
 def getImage_od(img,obj_info):
-	return img.copy()
+	# based on https://github.com/google-coral/pycoral/blob/master/examples/detect_image.py
+	if not obj_info:
+		#print('list was empty')
+		return img
+	else:
+		for obj in obj_info:
+			#print(obj)
+			w = img.shape[1]
+			h = img.shape[0]
+			ymin, xmin, ymax, xmax = obj['bounding_box']
+			xmin = int(xmin * w)
+			xmax = int(xmax * w)
+			ymin = int(ymin * h)
+			ymax = int(ymax * h)
+
+			cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
+			y = ymin - 15 if ymin - 15 > 15 else ymin + 15
+			cv2.putText(img,"{}: {:.2f}%".format(LABEL_DICT[obj['class_id']], obj['score'] * 100),
+						(xmin, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+
+	return img
+
+# ===================================== MAIN CODE ===============================
 
 # This line should be the first line in your program
 rospy.init_node('main_node', anonymous=True)
@@ -69,13 +182,13 @@ while 1:
 	img_pp = getImage_pp(img_in)
 
 	#detect lanes
-	lanes = ld.getLanes(img_pp.copy())
+	lanes, intersection_y = ld.getLanes(img_pp.copy())
 	print("lanes:",lanes)
-	img_ld = getImage_ld(img_pp,lanes)
+	img_ld = getImage_ld(img_pp.copy(),lanes, intersection_y)
 	
 	#detect objects
 	objects = od.getObjects(img_pp.copy())
-	img_od = getImage_od(img_pp,objects)
+	img_od = getImage_od(img_pp.copy(),objects)
 
 	#visualize the detections
 	img_in_resized = cv2.resize(img_in,(int(width/2),int(height/2)))
@@ -101,8 +214,9 @@ while 1:
 		break
 
 	#use the detected lanes and objects to make decisions
-	steering = random.uniform(-25,25)
-	speed = 0.2
+	#steering = random.uniform(-25,25)
+	steering = 0
+	speed = -0.1
 	print("Sending move with speed %d, steering %d"%(speed,steering))
 	car.drive(speed, steering)
 	sleep(0.01)
