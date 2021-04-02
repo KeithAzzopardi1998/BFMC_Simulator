@@ -69,11 +69,12 @@ while 1:
 	img_pp = getImage_pp(img_in)
 
 	#detect lanes
-	lanes = ld.getLanes(img_pp)
+	lanes = ld.getLanes(img_pp.copy())
+	print("lanes:",lanes)
 	img_ld = getImage_ld(img_pp,lanes)
 	
 	#detect objects
-	objects = od.getObjects(img_pp)
+	objects = od.getObjects(img_pp.copy())
 	img_od = getImage_od(img_pp,objects)
 
 	#visualize the detections
@@ -104,7 +105,7 @@ while 1:
 	speed = 0.2
 	print("Sending move with speed %d, steering %d"%(speed,steering))
 	car.drive(speed, steering)
-	sleep(0.5)
+	sleep(0.01)
 
 print("Car stopped. \n END")
 car.stop(0.0)
