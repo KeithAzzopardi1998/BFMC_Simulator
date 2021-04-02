@@ -10,6 +10,9 @@ from bfmclib.camera_s import CameraHandler
 from bfmclib.controller_p import Controller
 from bfmclib.trafficlight_s import TLColor, TLLabel, TrafficLight
 
+from lane_detection import LaneDetector
+from object_detection import ObjectDetector
+
 import rospy
 import cv2
 import numpy as np
@@ -24,12 +27,6 @@ def getImage_ld(img,lane_info):
 
 def getImage_od(img,obj_info):
 	return img.copy()
-
-def getLanes(img):
-	return []
-
-def getObjects(img):
-	return []
 
 # This line should be the first line in your program
 rospy.init_node('main_node', anonymous=True)
@@ -49,6 +46,12 @@ print("Gps loaded")
 bno = BNO055()
 print("BNO055 loaded")
 
+ld = LaneDetector()
+print("Lane Detector created")
+
+od = ObjectDetector()
+print("Object Detector created")
+
 car.drive(-0.1, 0.0)
 sleep(3)
 
@@ -66,11 +69,11 @@ while 1:
 	img_pp = getImage_pp(img_in)
 
 	#detect lanes
-	lanes = getLanes(img_pp)
+	lanes = ld.getLanes(img_pp)
 	img_ld = getImage_ld(img_pp,lanes)
 	
 	#detect objects
-	objects = getObjects(img_pp)
+	objects = od.getObjects(img_pp)
 	img_od = getImage_od(img_pp,objects)
 
 	#visualize the detections
