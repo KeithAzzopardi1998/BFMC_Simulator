@@ -2,29 +2,29 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-import tflite_runtime.interpreter as tflite
+#import tflite_runtime.interpreter as tflite
 
 
 class ObjectDetector:
     def __init__(self):
         print("tensorflow GPUs:",tf.config.list_physical_devices('GPU'))
         #Object Detection interpreter
-        self.od_interpreter = tflite.Interpreter(model_path='./models/object_detector_quant_4.tflite')
+        self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
         self.od_interpreter.allocate_tensors()
         self.od_input_details = self.od_interpreter.get_input_details()
         self.threshold = 0.3
 
         #Traffic Sign Recognition interpreter
-        self.tsr_interpreter = tflite.Interpreter(model_path='./models/object_recognition_quant.tflite')
+        self.tsr_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_recognition_quant.tflite')
         self.tsr_interpreter.allocate_tensors()
         self.tsr_input_details = self.tsr_interpreter.get_input_details()
         self.tsr_output_details = self.tsr_interpreter.get_output_details()
         self.threshold = 0.3
     
     def getObjects(self,img):
-        image_brightened = self.increase_brightness(img, value=30)
+        #image_brightened = self.increase_brightness(img, value=30)
                 
-        obj_list = self.objectDetection(image_brightened)
+        obj_list = self.objectDetection(img)
 
         #looping through the list of objects, and updating
         #the class ID of any traffic signs
