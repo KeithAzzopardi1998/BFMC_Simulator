@@ -8,18 +8,20 @@ import tensorflow as tf
 class ObjectDetector:
     def __init__(self):
         print("tensorflow GPUs:",tf.config.list_physical_devices('GPU'))
-        #Object Detection interpreter
-        self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
-        self.od_interpreter.allocate_tensors()
-        self.od_input_details = self.od_interpreter.get_input_details()
-        self.threshold = 0.3
+        
+        with tf.device('/GPU:0'):
+            #Object Detection interpreter
+            self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
+            self.od_interpreter.allocate_tensors()
+            self.od_input_details = self.od_interpreter.get_input_details()
+            self.threshold = 0.2
 
-        #Traffic Sign Recognition interpreter
-        self.tsr_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_recognition_quant.tflite')
-        self.tsr_interpreter.allocate_tensors()
-        self.tsr_input_details = self.tsr_interpreter.get_input_details()
-        self.tsr_output_details = self.tsr_interpreter.get_output_details()
-        self.threshold = 0.3
+            #Traffic Sign Recognition interpreter
+            self.tsr_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_recognition_quant.tflite')
+            self.tsr_interpreter.allocate_tensors()
+            self.tsr_input_details = self.tsr_interpreter.get_input_details()
+            self.tsr_output_details = self.tsr_interpreter.get_output_details()
+            self.threshold = 0.2
     
     def getObjects(self,img):
         #image_brightened = self.increase_brightness(img, value=30)
@@ -47,22 +49,25 @@ class ObjectDetector:
         return obj_list
 
     def set_input_od(self, image):
-        """Sets the input tensor."""
-        tensor_index = self.od_input_details[0]['index']
-        input_tensor = self.od_interpreter.tensor(tensor_index)()[0]
-        input_tensor[:, :] = image
+        with tf.device('/GPU:0'):
+            """Sets the input tensor."""
+            tensor_index = self.od_input_details[0]['index']
+            input_tensor = self.od_interpreter.tensor(tensor_index)()[0]
+            input_tensor[:, :] = image
     
     def set_input_tsr(self, image):
-        """Sets the input tensor."""
-        tensor_index = self.tsr_input_details[0]['index']
-        input_tensor = self.tsr_interpreter.tensor(tensor_index)()[0]
-        input_tensor[:, :] = image
+        with tf.device('/GPU:0'):
+            """Sets the input tensor."""
+            tensor_index = self.tsr_input_details[0]['index']
+            input_tensor = self.tsr_interpreter.tensor(tensor_index)()[0]
+            input_tensor[:, :] = image
 
     def get_output_tensor(self, index):
-        """Returns the output tensor at the given index."""
-        output_details = self.od_interpreter.get_output_details()[index]
-        tensor = np.squeeze(self.od_interpreter.get_tensor(output_details['index']))
-        return tensor
+        with tf.device('/GPU:0'):
+            """Returns the output tensor at the given index."""
+            output_details = self.od_interpreter.get_output_details()[index]
+            tensor = np.squeeze(self.od_interpreter.get_tensor(output_details['index']))
+            return tensor
 
     def make_result(self, box, class_id, scores):
         result = {
@@ -73,44 +78,46 @@ class ObjectDetector:
         return result
 
     def objectDetection(self, img_in):
-        input_shape = self.od_input_details[0]['shape']
-        _, height, width, _ = input_shape
+        with tf.device('/GPU:0'):
+            input_shape = self.od_input_details[0]['shape']
+            _, height, width, _ = input_shape
 
-        resized_image = cv2.resize(img_in, (width, height), interpolation=cv2.INTER_LINEAR)
+            resized_image = cv2.resize(img_in, (width, height), interpolation=cv2.INTER_LINEAR)
 
-        resized_image = resized_image[np.newaxis, :]
+            resized_image = resized_image[np.newaxis, :]
 
-        self.set_input_od(resized_image)
+            self.set_input_od(resized_image)
 
-        self.od_interpreter.invoke()
+            self.od_interpreter.invoke()
 
-        boxes = np.clip(self.get_output_tensor(0), 0, 1)
-        classes = self.get_output_tensor(1)
-        scores = self.get_output_tensor(2)
-        count = int(self.get_output_tensor(3))
+            boxes = np.clip(self.get_output_tensor(0), 0, 1)
+            classes = self.get_output_tensor(1)
+            scores = self.get_output_tensor(2)
+            count = int(self.get_output_tensor(3))
 
-        results = [self.make_result(boxes[i], classes[i], scores[i]) for i in range(count) if scores[i] >= self.threshold]
+            results = [self.make_result(boxes[i], classes[i], scores[i]) for i in range(count) if scores[i] >= self.threshold]
 
-        #print(results)
+            #print(results)
 
-        return results
+            return results
 
     def signRecognition(self,img_in):
-        input_shape = self.tsr_input_details[0]['shape']
-        _, height, width, _ = input_shape
+        with tf.device('/GPU:0'):
+            input_shape = self.tsr_input_details[0]['shape']
+            _, height, width, _ = input_shape
 
-        resized_image = cv2.resize(img_in, (width, height), interpolation=cv2.INTER_LINEAR)
+            resized_image = cv2.resize(img_in, (width, height), interpolation=cv2.INTER_LINEAR)
 
-        resized_image = resized_image[np.newaxis, :]
+            resized_image = resized_image[np.newaxis, :]
 
-        self.set_input_tsr(resized_image)
+            self.set_input_tsr(resized_image)
 
-        self.tsr_interpreter.invoke()
+            self.tsr_interpreter.invoke()
 
-        output_proba = self.tsr_interpreter.get_tensor(self.tsr_output_details[0]['index'])[0]
-        tsr_class = np.argmax(output_proba)
+            output_proba = self.tsr_interpreter.get_tensor(self.tsr_output_details[0]['index'])[0]
+            tsr_class = np.argmax(output_proba)
 
-        return float("7.%d"%tsr_class)
+            return float("7.%d"%tsr_class)
 
     def increase_brightness(self, img, value=30):
         hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
