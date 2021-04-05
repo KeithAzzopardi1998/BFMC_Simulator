@@ -8,19 +8,28 @@ class LaneDetector:
         height = self.img_shape[0]
         width = self.img_shape[1]
 
-        region_top_left = (0.15*width, 0.3*height)
-        region_top_right = (0.85*width, 0.3*height)
-        region_bottom_left_A = (0.00*width, 1.00*height)
-        region_bottom_left_B = (0.00*width, 0.8*height)
-        region_bottom_right_A = (1.00*width, 1.00*height)
-        region_bottom_right_B = (1.00*width, 0.8*height)
+        #use this code for a hexagonal ROI
+        #   region_top_left = (0.15*width, 0.3*height)
+        #   region_top_right = (0.85*width, 0.3*height)
+        #   region_bottom_left_A = (0.00*width, 1.00*height)
+        #   region_bottom_left_B = (0.00*width, 0.8*height)
+        #   region_bottom_right_A = (1.00*width, 1.00*height)
+        #   region_bottom_right_B = (1.00*width, 0.8*height)
+        #   self.mask_vertices = np.array([[region_bottom_left_A,
+        #                                    region_bottom_left_B,
+        #                                    region_top_left,
+        #                                    region_top_right,
+        #                                    region_bottom_right_B,
+        #                                    region_bottom_right_A]], dtype=np.int32)
 
-        self.mask_vertices = np.array([[region_bottom_left_A,
-                                         region_bottom_left_B,
+        region_top_left = (0.2*width, 0.5*height)
+        region_top_right = (0.8*width, 0.5*height)
+        region_bottom_left = (0.00*width, 1.00*height)
+        region_bottom_right = (1.00*width, 1.00*height)
+        self.mask_vertices = np.array([[region_bottom_left,
                                          region_top_left,
                                          region_top_right,
-                                         region_bottom_right_B,
-                                         region_bottom_right_A]], dtype=np.int32)
+                                         region_bottom_right]], dtype=np.int32)
     
     def getLanes(self, img_in):
         try:
@@ -84,7 +93,7 @@ class LaneDetector:
             smoothed_right_lane_coefficients = pp.determine_line_coefficients(right_lane_coefficients, [0.0, 0.0])
 
         #return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y, preprocessed_img
-        return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y
+        return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y, preprocessed_img
 
     def check_for_intersection(self,lines):
         #print("########### checking for intersection ###########")
