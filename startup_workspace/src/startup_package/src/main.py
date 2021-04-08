@@ -191,6 +191,7 @@ while 1:
 	#detect lanes
 	lanes, intersection_y,lane_preprocessed_img = ld.getLanes(img_pp.copy())
 	#print("lanes:",lanes)
+	#print("intersection y:",intersection_y)
 	img_ld = getImage_ld(img_pp.copy(),lanes, intersection_y)
 	#img_ld = img_pp.copy()
 	#lane_preprocessed_img = img_pp.copy()

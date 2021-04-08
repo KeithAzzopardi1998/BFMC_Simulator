@@ -98,14 +98,14 @@ def separate_lines(lines, img):
             # but get rid of lines with a small slope as they are likely to be horizontal one
             epsilon = 0.1
             if abs(slope) <= epsilon:
-                horizontal_lines.append([[x1, y1, x2, y2]])
+                horizontal_lines.append([x1, y1, x2, y2])
 
             if slope < 0 and x1 < left_x and x2 < left_x:
                 # Lane should also be within the left hand side of region of interest
-                left_lane_lines.append([[x1, y1, x2, y2]])
+                left_lane_lines.append([x1, y1, x2, y2])
             elif x1 >= right_x and x2 >= right_x:
                 # Lane should also be within the right hand side of region of interest
-                right_lane_lines.append([[x1, y1, x2, y2]])
+                right_lane_lines.append([x1, y1, x2, y2])
 
     return left_lane_lines, right_lane_lines, horizontal_lines
 
@@ -113,12 +113,11 @@ def getLanesFormula(lines):
     xs = []
     ys = []
 
-    for line in lines:
-        for x1, y1, x2, y2 in line:
-            xs.append(x1)
-            xs.append(x2)
-            ys.append(y1)
-            ys.append(y2)
+    for x1, y1, x2, y2 in lines:
+        xs.append(x1)
+        xs.append(x2)
+        ys.append(y1)
+        ys.append(y2)
 
     slope, intercept, r_value, p_value, std_err = stats.linregress(xs, ys)
 

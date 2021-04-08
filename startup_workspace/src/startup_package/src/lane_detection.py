@@ -5,16 +5,16 @@ import preprocessing as pp
 class LaneDetector:
     def __init__(self):
         self.img_shape = (480, 640)
-        height = self.img_shape[0]
-        width = self.img_shape[1]
+        self.height = self.img_shape[0]
+        self.width = self.img_shape[1]
 
         #use this code for a hexagonal ROI
-        #   region_top_left = (0.15*width, 0.3*height)
-        #   region_top_right = (0.85*width, 0.3*height)
-        #   region_bottom_left_A = (0.00*width, 1.00*height)
-        #   region_bottom_left_B = (0.00*width, 0.8*height)
-        #   region_bottom_right_A = (1.00*width, 1.00*height)
-        #   region_bottom_right_B = (1.00*width, 0.8*height)
+        #   region_top_left = (0.15*self.width, 0.3*self.height)
+        #   region_top_right = (0.85*self.width, 0.3*self.height)
+        #   region_bottom_left_A = (0.00*self.width, 1.00*self.height)
+        #   region_bottom_left_B = (0.00*self.width, 0.8*self.height)
+        #   region_bottom_right_A = (1.00*self.width, 1.00*self.height)
+        #   region_bottom_right_B = (1.00*self.width, 0.8*self.height)
         #   self.mask_vertices = np.array([[region_bottom_left_A,
         #                                    region_bottom_left_B,
         #                                    region_top_left,
@@ -22,10 +22,11 @@ class LaneDetector:
         #                                    region_bottom_right_B,
         #                                    region_bottom_right_A]], dtype=np.int32)
 
-        region_top_left = (0.2*width, 0.6*height)
-        region_top_right = (0.8*width, 0.6*height)
-        region_bottom_left = (0.00*width, 1.00*height)
-        region_bottom_right = (1.00*width, 1.00*height)
+        region_top_left = (0.2*self.width, 0.6*self.height)
+        region_top_right = (0.8*self.width, 0.6*self.height)
+        region_bottom_left = (0.00*self.width, 1.00*self.height)
+        region_bottom_right = (1.00*self.width, 1.00*self.height)
+
         self.mask_vertices = np.array([[region_bottom_left,
                                          region_top_left,
                                          region_top_right,
@@ -47,7 +48,6 @@ class LaneDetector:
             previous_right_lane_coefficients = None
 
             intersection_y = -1
-
             # Begin lane detection pipiline
             img = img_in.copy()
             img = cv2.convertScaleAbs(img,alpha=2.0,beta=30)
@@ -67,16 +67,15 @@ class LaneDetector:
             left_lane_lines, right_lane_lines, horizontal_lines = pp.separate_lines(hough_lines, img)
 
         except Exception as e:
-            print("lane preprocessing failed")
             #return np.array([[0.0,0.0], [0.0,0.0]], img_in
             left_lane_lines = []
             right_lane_lines = []
             horizontal_lines = []
             preprocessed_img = img_in
 
-        #TODO : check this threshold (it was determined using a very short test)
-        if len(horizontal_lines) >= 10 :
-            intersection_y = self.check_for_intersection(horizontal_lines)
+        #this function returns the y-intercept of the intersection
+        #if one is found, else it returns -1
+        intersection_y = self.check_for_intersection(horizontal_lines)
 
         try:
             left_lane_slope, left_intercept = pp.getLanesFormula(left_lane_lines)        
@@ -96,11 +95,23 @@ class LaneDetector:
         return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y, preprocessed_img
 
     def check_for_intersection(self,lines):
-        #print("########### checking for intersection ###########")
-        #for l in lines:
-        #    print(l)
-        slope, intercept = pp.getLanesFormula(lines)
-        #print(slope)
-        #print(intercept)
-        #print("#################################################")
-        return intercept
+        # if there are no horizontal lines, there is definitely no intersection
+        if not lines:
+            return -1
+
+        # to check if there is an intersection, we first calculate
+        # the length of each line
+        # each line is of the format [x1, y1, x2, y2]
+        # we use the difference of x values (instead of pythagoras)
+        # as it is faster, and we know that the lines are of a low gradient
+        line_lengths = np.array([ abs(l[0] - l[2]) for l in lines])
+
+        # this is the "consensus function" which determines whether
+        # there is an intersection or not
+        detected = (np.mean(line_lengths) >= (self.width/3))
+
+        if detected:
+            _, intercept = pp.getLanesFormula(lines)
+            return intercept
+        else:
+            return -1

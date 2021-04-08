@@ -17,6 +17,11 @@ class AutonomousController:
         try:
             ld_left, ld_right = lane_info
 
+            if intersection_info >= 320:
+                print("STOP")
+                self.car.stop(0.0)
+                time.sleep(5)
+
             self.routine_cruise(ld_left, ld_right,frame_size)
             
         except Exception as e:
@@ -32,7 +37,7 @@ class AutonomousController:
         for i in range(self.angles_to_store):
             weighted_angle += self.last_n_angles[(self.index + i + 1) % self.angles_to_store] * self.angle_weights[i]
 
-        print('weighted angle', weighted_angle)
+        #print('weighted angle', weighted_angle)
 
         self.index += 1
         if self.index % self.angles_to_store == 0 and self.index >= 20:
@@ -58,28 +63,22 @@ class AutonomousController:
         #if right_found: print("found right lane")
 
         if left_found and right_found: #both lanes
-            print("lanes: lr")
             cam_mid_offset_percent = 0.02
             mid = int(width/2 * (1 + cam_mid_offset_percent))
             x_offset = (left_x2 + right_x2) / 2 - mid
         elif left_found and not right_found: #left lane only
-            print("lanes: l")
             x_offset = left_x2 - left_x1
         elif not left_found and right_found: #right lane ony
-            print("lanes: r")
             x_offset = right_x2 - right_x1
         else: #no lanes detected
-            print("lanes: none")
             x_offset = 0
         
         #HACK: this was /2 before
         y_offset = float(height/1.8)
 
         steering_angle = math.atan(x_offset / y_offset) #in radians
-        print("calculate_steering_angle checkoint ", steering_angle)
         steering_angle = steering_angle * 180.0 / math.pi
         steering_angle = np.clip(steering_angle, -15.0, 15.0)
-        print("calculate_steering_angle will return ", steering_angle)
         return steering_angle
     
     def points_from_lane_coeffs(self,line_coefficients,frame_size):
