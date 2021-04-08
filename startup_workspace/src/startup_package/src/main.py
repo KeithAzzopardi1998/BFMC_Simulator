@@ -12,12 +12,16 @@ from bfmclib.trafficlight_s import TLColor, TLLabel, TrafficLight
 
 from lane_detection import LaneDetector
 from object_detection import ObjectDetector
+from autonomous_controller import AutonomousController
 
 import rospy
 import cv2
 import numpy as np
 import random
 from time import sleep
+
+import tensorflow as tf
+tf.debugging.set_log_device_placement(True)
 
 def getImage_pp(img):
 	return img.copy()
@@ -162,11 +166,14 @@ print("BNO055 loaded")
 ld = LaneDetector()
 print("Lane Detector created")
 
-od = ObjectDetector()
-print("Object Detector created")
+# od = ObjectDetector()
+# print("Object Detector created")
 
-car.drive(-0.1, 0.0)
-sleep(3)
+con = AutonomousController()
+print("AutonomousController created")
+
+#car.drive(-0.1, 0.0)
+#sleep(3)
 
 steering = 0.0
 speed = 0.0
@@ -182,17 +189,24 @@ while 1:
 	img_pp = getImage_pp(img_in)
 
 	#detect lanes
-	lanes, intersection_y = ld.getLanes(img_pp.copy())
-	print("lanes:",lanes)
+	lanes, intersection_y,lane_preprocessed_img = ld.getLanes(img_pp.copy())
+	#print("lanes:",lanes)
 	img_ld = getImage_ld(img_pp.copy(),lanes, intersection_y)
-	
-	#detect objects
-	objects = od.getObjects(img_pp.copy())
-	img_od = getImage_od(img_pp.copy(),objects)
+	#img_ld = img_pp.copy()
+	#lane_preprocessed_img = img_pp.copy()
 
+	#detect objects
+	# objects = od.getObjects(img_pp.copy())
+	objects = []
+	# img_od = getImage_od(img_pp.copy(),objects)
+	img_od = img_pp.copy()
 	#visualize the detections
 	img_in_resized = cv2.resize(img_in,(int(width/2),int(height/2)))
-	img_pp_resized = cv2.resize(img_pp,(int(width/2),int(height/2)))
+
+	#TODO revert this
+	#img_pp_resized = cv2.resize(img_pp,(int(width/2),int(height/2)))
+	img_pp_resized = cv2.resize(lane_preprocessed_img,(int(width/2),int(height/2)))
+
 	img_ld_resized = cv2.resize(img_ld,(int(width/2),int(height/2)))
 	img_od_resized = cv2.resize(img_od,(int(width/2),int(height/2)))
 
@@ -205,7 +219,7 @@ while 1:
 	cv2.putText(img_out,'Raw',		        (0,int(height*0.49)),                     font,1,(255,255,255),2,cv2.LINE_AA)
 	cv2.putText(img_out,'Preprocessed',     (int(width*0.5),int(height*0.49)),   font,1,(255,255,255),2,cv2.LINE_AA)
 	cv2.putText(img_out,'Lanes',   			(0,int(height*0.99)),                     font,1,(255,255,255),2,cv2.LINE_AA)
-	cv2.putText(img_out,'Objects',     		(int(width*0.5),int(height*0.99)),   font,1,(255,255,255),2,cv2.LINE_AA)
+	cv2.putText(img_out,'Objects - Disabled',     		(int(width*0.5),int(height*0.99)),   font,1,(255,255,255),2,cv2.LINE_AA)
 
 	cv2.imshow("Frame preview", img_out)
 	key = cv2.waitKey(1)
@@ -215,11 +229,12 @@ while 1:
 
 	#use the detected lanes and objects to make decisions
 	#steering = random.uniform(-25,25)
-	steering = 0
-	speed = -0.1
-	print("Sending move with speed %d, steering %d"%(speed,steering))
-	car.drive(speed, steering)
-	sleep(0.01)
+	# steering = 0
+	# speed = 0.1
+	# print("Sending move with speed %d, steering %d"%(speed,steering))
+	# car.drive(speed, steering)
+	con.chooseRoutine(lanes, intersection_y, objects, (img_in.shape[0],img_in.shape[1]))
+
 
 print("Car stopped. \n END")
 car.stop(0.0)

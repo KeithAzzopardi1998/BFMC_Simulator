@@ -72,7 +72,9 @@ def hough_transform(canny_img, rho, theta, threshold, min_line_len, max_line_gap
 def separate_lines(lines, img):
     img_shape = img.shape
 
-    middle_x = img_shape[1] / 2
+    #middle_x = img_shape[1] / 2
+    right_x = img_shape[1] * 0.5
+    left_x = img_shape[1] * 0.5
 
     left_lane_lines = []
     right_lane_lines = []
@@ -98,10 +100,10 @@ def separate_lines(lines, img):
             if abs(slope) <= epsilon:
                 horizontal_lines.append([[x1, y1, x2, y2]])
 
-            if slope < 0 and x1 < middle_x and x2 < middle_x:
+            if slope < 0 and x1 < left_x and x2 < left_x:
                 # Lane should also be within the left hand side of region of interest
                 left_lane_lines.append([[x1, y1, x2, y2]])
-            elif x1 >= middle_x and x2 >= middle_x:
+            elif x1 >= right_x and x2 >= right_x:
                 # Lane should also be within the right hand side of region of interest
                 right_lane_lines.append([[x1, y1, x2, y2]])
 

@@ -22,8 +22,8 @@ class LaneDetector:
         #                                    region_bottom_right_B,
         #                                    region_bottom_right_A]], dtype=np.int32)
 
-        region_top_left = (0.2*width, 0.5*height)
-        region_top_right = (0.8*width, 0.5*height)
+        region_top_left = (0.2*width, 0.6*height)
+        region_top_right = (0.8*width, 0.6*height)
         region_bottom_left = (0.00*width, 1.00*height)
         region_bottom_right = (1.00*width, 1.00*height)
         self.mask_vertices = np.array([[region_bottom_left,
@@ -82,14 +82,14 @@ class LaneDetector:
             left_lane_slope, left_intercept = pp.getLanesFormula(left_lane_lines)        
             smoothed_left_lane_coefficients = pp.determine_line_coefficients(left_lane_coefficients, [left_lane_slope, left_intercept])
         except Exception as e:
-            print("Using saved coefficients for left coefficients", e)
+            #print("Using saved coefficients for left coefficients", e)
             smoothed_left_lane_coefficients = pp.determine_line_coefficients(left_lane_coefficients, [0.0, 0.0])
             
         try: 
             right_lane_slope, right_intercept = pp.getLanesFormula(right_lane_lines)
             smoothed_right_lane_coefficients = pp.determine_line_coefficients(right_lane_coefficients, [right_lane_slope, right_intercept])
         except Exception as e:
-            print("Using saved coefficients for right coefficients", e)
+            #print("Using saved coefficients for right coefficients", e)
             smoothed_right_lane_coefficients = pp.determine_line_coefficients(right_lane_coefficients, [0.0, 0.0])
 
         #return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y, preprocessed_img
@@ -104,27 +104,3 @@ class LaneDetector:
         #print(intercept)
         #print("#################################################")
         return intercept
-
-    def points_from_lane_coeffs(self,line_coefficients):
-        A = line_coefficients[0]
-        b = line_coefficients[1]
-
-        if A==0.00 and b==0.00:
-            return [0,0,0,0]
-
-        height, width = self.img_shape
-
-        bottom_y = height - 1
-        top_y = self.mask_vertices[0][2][1]
-        # y = Ax + b, therefore x = (y - b) / A
-        bottom_x = (bottom_y - b) / A
-        # clipping the x values
-        bottom_x = min(bottom_x, 2*width)
-        bottom_x = max(bottom_x, -1*width)
-
-        top_x = (top_y - b) / A
-        # clipping the x values
-        top_x = min(top_x, 2*width)
-        top_x = max(top_x, -1*width)
-
-        return [int(bottom_x), int(bottom_y), int(top_x), int(top_y)]

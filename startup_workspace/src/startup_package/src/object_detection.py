@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-
+import time
 #import tflite_runtime.interpreter as tflite
 
 
@@ -25,8 +25,11 @@ class ObjectDetector:
     
     def getObjects(self,img):
         #image_brightened = self.increase_brightness(img, value=30)
-                
+
+        start = time.clock()  
         obj_list = self.objectDetection(img)
+        end = time.clock()
+        print("object detection took", end-start)
 
         #looping through the list of objects, and updating
         #the class ID of any traffic signs
@@ -86,16 +89,25 @@ class ObjectDetector:
 
             resized_image = resized_image[np.newaxis, :]
 
+            start = time.clock()
             self.set_input_od(resized_image)
+            end = time.clock()
+            print("setting input took", end-start)
 
+            start = time.clock()
             self.od_interpreter.invoke()
+            end = time.clock()
+            print("invoke took", end-start)
 
             boxes = np.clip(self.get_output_tensor(0), 0, 1)
             classes = self.get_output_tensor(1)
             scores = self.get_output_tensor(2)
             count = int(self.get_output_tensor(3))
 
+            start = time.clock()
             results = [self.make_result(boxes[i], classes[i], scores[i]) for i in range(count) if scores[i] >= self.threshold]
+            end = time.clock()
+            print("reading output took", end-start)
 
             #print(results)
 
