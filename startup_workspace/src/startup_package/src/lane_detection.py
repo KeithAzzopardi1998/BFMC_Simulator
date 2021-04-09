@@ -108,7 +108,9 @@ class LaneDetector:
 
         # this is the "consensus function" which determines whether
         # there is an intersection or not
-        detected = (np.mean(line_lengths) >= (self.width/3))
+        detected = (np.mean(line_lengths) >= (self.width/3)) or (len(lines)>10)
+        print("num horizontal lines: ",len(lines))
+
 
         if detected:
             slope, intercept = pp.getLanesFormula(lines)
