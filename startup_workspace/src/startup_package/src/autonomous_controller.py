@@ -32,12 +32,9 @@ class AutonomousController:
         self.car.stop(0.0)
         time.sleep(3)
 
-        if intersection_grad > 0.01:
-            self.car.drive(-0.1, 0.0)
-            time.sleep(2)
-            self.car.stop(0.0)
-            time.sleep(3)
-            return
+        #the angle at which we are approaching the intersection (in degrees)
+        alpha = 90 + math.atan(intersection_grad)
+        print("the angle of approach is ",alpha)
 
         # TODO: how to determine these?
         turn_left = False
