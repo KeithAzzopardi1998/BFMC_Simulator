@@ -16,16 +16,45 @@ class AutonomousController:
     def chooseRoutine(self, lane_info, intersection_info, obj_info,frame_size):
         try:
             ld_left, ld_right = lane_info
+            int_grad, int_y = intersection_info
 
-            if intersection_info >= 320:
-                print("STOP")
-                self.car.stop(0.0)
-                time.sleep(5)
+            if int_y >= 320:
+                self.routine_intersection(int_grad, int_y)
 
             self.routine_cruise(ld_left, ld_right,frame_size)
             
         except Exception as e:
             print("AutonomousController failed:\n",e,"\n\n")
+    
+    def routine_intersection(self,intersection_grad,intersection_y):
+        print("routine_intersection: STOPPING AT INTERSECTION AT Y=%d"%intersection_y)
+        print("the gradient is ",intersection_grad)
+        self.car.stop(0.0)
+        time.sleep(3)
+
+        if intersection_grad > 0.01:
+            self.car.drive(-0.1, 0.0)
+            time.sleep(2)
+            self.car.stop(0.0)
+            time.sleep(3)
+            return
+
+        # TODO: how to determine these?
+        turn_left = False
+        turn_right = True
+        
+        if turn_right:
+            print("routine_intersection: making right turn")
+            self.car.drive(0.15, 0.0)
+            time.sleep(3)
+            self.car.drive(0.15, 20)
+            time.sleep(4)
+            print("finished right turn")
+
+        elif turn_left:
+            pass
+        
+        time.sleep(0.1)
 
     def routine_cruise(self,lane_left,lane_right,frame_size):
         steering_angle = self.calculate_steering_angle(lane_left,lane_right,frame_size)

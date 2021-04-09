@@ -75,7 +75,7 @@ class LaneDetector:
 
         #this function returns the y-intercept of the intersection
         #if one is found, else it returns -1
-        intersection_y = self.check_for_intersection(horizontal_lines)
+        intersection_info = self.check_for_intersection(horizontal_lines)
 
         try:
             left_lane_slope, left_intercept = pp.getLanesFormula(left_lane_lines)        
@@ -92,12 +92,12 @@ class LaneDetector:
             smoothed_right_lane_coefficients = pp.determine_line_coefficients(right_lane_coefficients, [0.0, 0.0])
 
         #return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y, preprocessed_img
-        return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_y, preprocessed_img
+        return np.array([smoothed_left_lane_coefficients, smoothed_right_lane_coefficients]),intersection_info, preprocessed_img
 
     def check_for_intersection(self,lines):
         # if there are no horizontal lines, there is definitely no intersection
         if not lines:
-            return -1
+            return [-1,-1]
 
         # to check if there is an intersection, we first calculate
         # the length of each line
@@ -111,7 +111,7 @@ class LaneDetector:
         detected = (np.mean(line_lengths) >= (self.width/3))
 
         if detected:
-            _, intercept = pp.getLanesFormula(lines)
-            return intercept
+            slope, intercept = pp.getLanesFormula(lines)
+            return [slope, intercept]
         else:
-            return -1
+            return [-1,-1]
