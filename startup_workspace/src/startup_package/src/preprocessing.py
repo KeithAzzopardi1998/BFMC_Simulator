@@ -96,7 +96,7 @@ def separate_lines(lines, img):
 
             # This is pure guess than anything...
             # but get rid of lines with a small slope as they are likely to be horizontal one
-            epsilon = 0.2
+            epsilon = 0.3
             if abs(slope) <= epsilon:
                 horizontal_lines.append([x1, y1, x2, y2])
 
