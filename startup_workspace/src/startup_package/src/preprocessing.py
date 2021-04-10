@@ -96,13 +96,14 @@ def separate_lines(lines, img):
 
             # This is pure guess than anything...
             # but get rid of lines with a small slope as they are likely to be horizontal one
-            if abs(slope) <= 0.1:
+            epsilon = 0.2
+            if abs(slope) <= epsilon:
                 horizontal_lines.append([x1, y1, x2, y2])
 
-            if slope < -0.2 and x1 < left_x and x2 < left_x:
+            if slope < -1*epsilon and x1 < left_x and x2 < left_x:
                 # Lane should also be within the left hand side of region of interest
                 left_lane_lines.append([x1, y1, x2, y2])
-            elif slope > 0.2 and x1 >= right_x and x2 >= right_x:
+            elif slope > epsilon and x1 >= right_x and x2 >= right_x:
                 # Lane should also be within the right hand side of region of interest
                 right_lane_lines.append([x1, y1, x2, y2])
 

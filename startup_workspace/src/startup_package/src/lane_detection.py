@@ -78,7 +78,8 @@ class LaneDetector:
         intersection_info = self.check_for_intersection(horizontal_lines)
 
         try:
-            left_lane_slope, left_intercept = pp.getLanesFormula(left_lane_lines)        
+            left_lane_slope, left_intercept = pp.getLanesFormula(left_lane_lines)  
+            print("left slope:",left_lane_slope)      
             smoothed_left_lane_coefficients = pp.determine_line_coefficients(left_lane_coefficients, [left_lane_slope, left_intercept])
         except Exception as e:
             #print("Using saved coefficients for left coefficients", e)
@@ -86,6 +87,7 @@ class LaneDetector:
             
         try: 
             right_lane_slope, right_intercept = pp.getLanesFormula(right_lane_lines)
+            print("right slope:",right_lane_slope)
             smoothed_right_lane_coefficients = pp.determine_line_coefficients(right_lane_coefficients, [right_lane_slope, right_intercept])
         except Exception as e:
             #print("Using saved coefficients for right coefficients", e)
@@ -108,11 +110,15 @@ class LaneDetector:
 
         # this is the "consensus function" which determines whether
         # there is an intersection or not
-        detected = (np.mean(line_lengths) >= (self.width/3)) or (len(lines)>10)
-        print("num horizontal lines: ",len(lines))
-
+        cond1 = (np.mean(line_lengths) >= (self.width/3))
+        cond2 = (len(lines)>10)
+        cond3 = (len([ l for l in line_lengths if l >=(self.width*0.75)]) 
+                        >= len(line_lengths)*0.5)
+        detected = cond1 or cond2 or cond3
 
         if detected:
+            print("detected intersection with condition(s) c1: %s, c2: %s, c3: %s"
+                    % (cond1,cond2,cond3))
             slope, intercept = pp.getLanesFormula(lines)
             return [slope, intercept]
         else:

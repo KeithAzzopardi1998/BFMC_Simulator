@@ -11,6 +11,10 @@ class AutonomousController:
         self.angles_to_store = 3
         self.last_n_angles = np.zeros(self.angles_to_store)
         self.index = 0
+        
+        #TODO get these from the XML path planner
+        self.actions = ["right","straight","left","left"]
+        self.action_counter = 0
 
 
     def chooseRoutine(self, lane_info, intersection_info, obj_info,frame_size):
@@ -33,25 +37,44 @@ class AutonomousController:
         time.sleep(3)
 
         #the angle at which we are approaching the intersection (in degrees)
+        theta = math.atan(intersection_grad)
         alpha = 90 + math.atan(intersection_grad)
         print("the angle of approach is ",alpha)
 
         # TODO: how to determine these?
-        turn_left = False
-        turn_right = True
+        next_action = self.getNextAction()
         
-        if turn_right:
+        if next_action=="right":
             print("routine_intersection: making right turn")
-            self.car.drive(0.15, 0.0)
+            self.car.drive(0.15, 0.0 + (theta*3))
             time.sleep(3)
             self.car.drive(0.15, 20)
             time.sleep(4)
-            print("finished right turn")
-
-        elif turn_left:
+        elif next_action=="left":
+            print("routine_intersection: making left turn")
+            self.car.drive(0.15, 0.0 + (theta*3))
+            time.sleep(3)
+            self.car.drive(0.15, 0.0)
+            time.sleep(3)
+            self.car.drive(0.15, -20)
+            time.sleep(5)
+        elif next_action=="straight":
+            print("routine_intersection: going straight")
+            self.car.drive(0.15, 0.0 + (theta*3))
+            time.sleep(3)
+            self.car.drive(0.15, 0.0)
+            time.sleep(3)
+            self.car.drive(0.15, 0.0)
+            time.sleep(3)
+        else:
             pass
         
         time.sleep(0.1)
+
+    def getNextAction(self):
+        a = self.actions[self.action_counter]
+        self.action_counter +=1
+        return a
 
     def routine_cruise(self,lane_left,lane_right,frame_size):
         steering_angle = self.calculate_steering_angle(lane_left,lane_right,frame_size)
