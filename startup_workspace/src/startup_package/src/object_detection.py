@@ -92,12 +92,12 @@ class ObjectDetector:
             start = time.clock()
             self.set_input_od(resized_image)
             end = time.clock()
-            print("setting input took", end-start)
+            #print("setting input took", end-start)
 
             start = time.clock()
             self.od_interpreter.invoke()
             end = time.clock()
-            print("invoke took", end-start)
+            #print("invoke took", end-start)
 
             boxes = np.clip(self.get_output_tensor(0), 0, 1)
             classes = self.get_output_tensor(1)
@@ -107,7 +107,7 @@ class ObjectDetector:
             start = time.clock()
             results = [self.make_result(boxes[i], classes[i], scores[i]) for i in range(count) if scores[i] >= self.threshold]
             end = time.clock()
-            print("reading output took", end-start)
+            #print("reading output took", end-start)
 
             #print(results)
 

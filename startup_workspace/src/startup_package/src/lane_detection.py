@@ -79,7 +79,7 @@ class LaneDetector:
 
         try:
             left_lane_slope, left_intercept = pp.getLanesFormula(left_lane_lines)  
-            print("left slope:",left_lane_slope)      
+            #print("left slope:",left_lane_slope)      
             smoothed_left_lane_coefficients = pp.determine_line_coefficients(left_lane_coefficients, [left_lane_slope, left_intercept])
         except Exception as e:
             #print("Using saved coefficients for left coefficients", e)
@@ -87,7 +87,7 @@ class LaneDetector:
             
         try: 
             right_lane_slope, right_intercept = pp.getLanesFormula(right_lane_lines)
-            print("right slope:",right_lane_slope)
+            #print("right slope:",right_lane_slope)
             smoothed_right_lane_coefficients = pp.determine_line_coefficients(right_lane_coefficients, [right_lane_slope, right_intercept])
         except Exception as e:
             #print("Using saved coefficients for right coefficients", e)

@@ -166,8 +166,8 @@ print("BNO055 loaded")
 ld = LaneDetector()
 print("Lane Detector created")
 
-# od = ObjectDetector()
-# print("Object Detector created")
+od = ObjectDetector()
+print("Object Detector created")
 
 con = AutonomousController()
 print("AutonomousController created")
@@ -177,6 +177,9 @@ print("AutonomousController created")
 
 steering = 0.0
 speed = 0.0
+
+frame_counter = 0
+od_interval = 10
 
 while 1:
 	#raw image
@@ -197,10 +200,11 @@ while 1:
 	#lane_preprocessed_img = img_pp.copy()
 
 	#detect objects
-	# objects = od.getObjects(img_pp.copy())
-	objects = []
-	# img_od = getImage_od(img_pp.copy(),objects)
-	img_od = img_pp.copy()
+	if frame_counter % od_interval == 0:
+		objects = od.getObjects(img_pp.copy())
+	img_od = getImage_od(img_pp.copy(),objects)
+	#objects = []
+	#img_od = img_pp.copy()
 	#visualize the detections
 	img_in_resized = cv2.resize(img_in,(int(width/2),int(height/2)))
 
@@ -220,7 +224,7 @@ while 1:
 	cv2.putText(img_out,'Raw',		        (0,int(height*0.49)),                     font,1,(255,255,255),2,cv2.LINE_AA)
 	cv2.putText(img_out,'Preprocessed',     (int(width*0.5),int(height*0.49)),   font,1,(255,255,255),2,cv2.LINE_AA)
 	cv2.putText(img_out,'Lanes',   			(0,int(height*0.99)),                     font,1,(255,255,255),2,cv2.LINE_AA)
-	cv2.putText(img_out,'Objects - Disabled',     		(int(width*0.5),int(height*0.99)),   font,1,(255,255,255),2,cv2.LINE_AA)
+	cv2.putText(img_out,'Objects',     		(int(width*0.5),int(height*0.99)),   font,1,(255,255,255),2,cv2.LINE_AA)
 
 	cv2.imshow("Frame preview", img_out)
 	key = cv2.waitKey(1)
@@ -235,6 +239,7 @@ while 1:
 	# print("Sending move with speed %d, steering %d"%(speed,steering))
 	# car.drive(speed, steering)
 	con.chooseRoutine(lanes, intersection, objects, (img_in.shape[0],img_in.shape[1]))
+	frame_counter+=1
 
 
 print("Car stopped. \n END")
