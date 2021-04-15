@@ -20,6 +20,10 @@ import numpy as np
 import random
 from time import sleep
 
+import threading
+
+import Queue
+
 import tensorflow as tf
 tf.debugging.set_log_device_placement(True)
 
@@ -167,6 +171,7 @@ ld = LaneDetector()
 print("Lane Detector created")
 
 od = ObjectDetector()
+od_q = Queue.Queue()
 print("Object Detector created")
 
 con = AutonomousController()
@@ -178,9 +183,8 @@ print("AutonomousController created")
 steering = 0.0
 speed = 0.0
 
-frame_counter = 0
-od_interval = 10
-
+od_thread = None
+objects = []
 while 1:
 	#raw image
 	img_in = cam.getImage()
@@ -200,11 +204,20 @@ while 1:
 	#lane_preprocessed_img = img_pp.copy()
 
 	#detect objects
-	if frame_counter % od_interval == 0:
-		objects = od.getObjects(img_pp.copy())
+	if not od_thread:
+		print("starting OD thread")
+		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
+		od_thread.start()
+	# if the OD thread has finished working, update the detections and
+	# start th thread again
+	if not od_thread.isAlive():
+		print("od thread has finished running ... updating and restarting ...")
+		objects = od_q.get()
+		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
+		od_thread.start()
+	print("objects:",objects)
 	img_od = getImage_od(img_pp.copy(),objects)
-	#objects = []
-	#img_od = img_pp.copy()
+
 	#visualize the detections
 	img_in_resized = cv2.resize(img_in,(int(width/2),int(height/2)))
 
@@ -239,7 +252,6 @@ while 1:
 	# print("Sending move with speed %d, steering %d"%(speed,steering))
 	# car.drive(speed, steering)
 	con.chooseRoutine(lanes, intersection, objects, (img_in.shape[0],img_in.shape[1]))
-	frame_counter+=1
 
 
 print("Car stopped. \n END")

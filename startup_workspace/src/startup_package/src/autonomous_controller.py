@@ -96,9 +96,8 @@ class AutonomousController:
         if self.index % self.angles_to_store == 0 and self.index >= 20:
             self.index = 0
 
-        self.car.drive(0.15, weighted_angle)
-        time.sleep(0.5)
-        self.car.stop()
+        self.car.drive(0.1, weighted_angle)
+        time.sleep(0.1)
     
     def calculate_steering_angle(self,lane_left,lane_right,frame_size):
         #convert from lane lines to lane points

@@ -4,6 +4,7 @@ import tensorflow as tf
 import time
 #import tflite_runtime.interpreter as tflite
 
+import Queue
 
 class ObjectDetector:
     def __init__(self):
@@ -23,13 +24,11 @@ class ObjectDetector:
             self.tsr_output_details = self.tsr_interpreter.get_output_details()
             self.threshold = 0.2
     
-    def getObjects(self,img):
+    def getObjects(self,img,q):
         #image_brightened = self.increase_brightness(img, value=30)
 
         start = time.clock()  
         obj_list = self.objectDetection(img)
-        end = time.clock()
-        print("object detection took", end-start)
 
         #looping through the list of objects, and updating
         #the class ID of any traffic signs
@@ -49,7 +48,14 @@ class ObjectDetector:
                 #which returns the new class ID
                 o['class_id'] = self.signRecognition(roi)
         
-        return obj_list
+        end = time.clock()
+        print("object detection took", end-start)
+
+        #since this is called from a thread,
+        #we cannot return obj_list, so we
+        #add it to the queue
+        q.put(obj_list)
+        print("going to return:", obj_list)
 
     def set_input_od(self, image):
         with tf.device('/GPU:0'):
