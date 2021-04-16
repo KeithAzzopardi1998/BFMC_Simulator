@@ -15,20 +15,23 @@ class ObjectDetector:
             self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
             self.od_interpreter.allocate_tensors()
             self.od_input_details = self.od_interpreter.get_input_details()
-            self.threshold = 0.2
+            self.threshold = 0.3
 
             #Traffic Sign Recognition interpreter
             self.tsr_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_recognition_quant.tflite')
             self.tsr_interpreter.allocate_tensors()
             self.tsr_input_details = self.tsr_interpreter.get_input_details()
             self.tsr_output_details = self.tsr_interpreter.get_output_details()
-            self.threshold = 0.2
     
     def getObjects(self,img,q):
-        #image_brightened = self.increase_brightness(img, value=30)
+        
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        # img_bright = self.increase_brightness(img, value=50)
+        img_bright = img_rgb
 
         start = time.clock()  
-        obj_list = self.objectDetection(img)
+        obj_list = self.objectDetection(img_bright)
 
         #looping through the list of objects, and updating
         #the class ID of any traffic signs
@@ -43,7 +46,7 @@ class ObjectDetector:
                 xmax = int(xmax * w)
                 ymin = int(ymin * h)
                 ymax = int(ymax * h)
-                roi = img[ymin:ymax, xmin:xmax]
+                roi = img_bright[ymin:ymax, xmin:xmax]
                 #run the traffic sign recognition function,
                 #which returns the new class ID
                 o['class_id'] = self.signRecognition(roi)
