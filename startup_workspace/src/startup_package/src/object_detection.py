@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import tensorflow as tf
 import time
 #import tflite_runtime.interpreter as tflite
@@ -36,33 +38,34 @@ class ObjectDetector:
 
         start = time.clock()  
         obj_list = self.objectDetection(img_bright)
+        print("finished object detection with type",type(obj_list))
 
-        #looping through the list of objects, and updating
-        #the class ID of any traffic signs
-        for o in obj_list:
-            #the main OD model uses class 7 for traffic signs
-            if o['class_id']== 7.0:
-                #grab the part of the image containing the sign
-                w = img.shape[1]
-                h = img.shape[0]
-                ymin, xmin, ymax, xmax = o['bounding_box']
-                xmin = int(xmin * w)
-                xmax = int(xmax * w)
-                ymin = int(ymin * h)
-                ymax = int(ymax * h)
-                roi = img_bright[ymin:ymax, xmin:xmax]
-                #run the traffic sign recognition function,
-                #which returns the new class ID
-                o['class_id'] = self.signRecognition(roi)
-        
-        end = time.clock()
-        print("object detection took", end-start)
+        # #looping through the list of objects, and updating
+        # #the class ID of any traffic signs
+        # for o in obj_list:
+        #     #the main OD model uses class 7 for traffic signs
+        #     if o['class_id']== 7.0:
+        #         #grab the part of the image containing the sign
+        #         w = img.shape[1]
+        #         h = img.shape[0]
+        #         ymin, xmin, ymax, xmax = o['bounding_box']
+        #         xmin = int(xmin * w)
+        #         xmax = int(xmax * w)
+        #         ymin = int(ymin * h)
+        #         ymax = int(ymax * h)
+        #         roi = img_bright[ymin:ymax, xmin:xmax]
+        #         #run the traffic sign recognition function,
+        #         #which returns the new class ID
+        #         o['class_id'] = self.signRecognition(roi)
+        # 
+        # end = time.clock()
+        # print("object detection took", end-start)
 
         #since this is called from a thread,
         #we cannot return obj_list, so we
         #add it to the queue
         q.put(obj_list)
-        print("going to return:", obj_list)
+        #print("going to return:", obj_list)
 
     def set_input_od(self, image):
         with tf.device('/GPU:0'):
@@ -128,43 +131,45 @@ class ObjectDetector:
 
     ############################## OBJECT DETECTION WITHOUT TFLITE ##############################
     def preprocess_image(self,img_in):
-        with tf.device('/GPU:0'):
-            HEIGHT = 320
-            WIDTH = 320
-            img = tf.convert_to_tensor(img_in)
-            original_image = img
-            img = tf.image.convert_image_dtype(img, tf.float32)
-            resized_img = tf.image.resize(img, (HEIGHT, WIDTH))
-            resized_img = resized_img[tf.newaxis, :]
-            resized_img = tf.image.convert_image_dtype(resized_img, tf.uint8)
-            return resized_img, original_image
+        HEIGHT = 320
+        WIDTH = 320
+        img = tf.convert_to_tensor(img_in)
+        original_image = img
+        img = tf.image.convert_image_dtype(img, tf.float32)
+        resized_img = tf.image.resize(img, (HEIGHT, WIDTH))
+        resized_img = resized_img[tf.newaxis, :]
+        resized_img = tf.image.convert_image_dtype(resized_img, tf.uint8)
+        return resized_img, original_image
 
     def clean_detections(self,detections):
         # All outputs are batches tensors.
         # Convert to numpy arrays, and take index [0] to remove the batch dimension.
         # We're only interested in the first num_detections.
-        with tf.device('/GPU:0'):
-            num_detections = int(detections.pop('num_detections'))
-            detections = {key: value[0, :num_detections].numpy()
-                            for key, value in detections.items()}
-            detections['num_detections'] = num_detections
+        num_detections = int(detections.pop('num_detections'))
+        detections = {key: value[0, :num_detections].numpy()
+                        for key, value in detections.items()}
+        detections['num_detections'] = num_detections
 
-            # detection_classes should be ints.
-            detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
+        # detection_classes should be ints.
+        detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
 
-            return detections
+        return detections
 
     def objectDetection(self,img_in):
-        with tf.device('/GPU:0'):
-            resized, original = self.preprocess_image(img_in)
+        resized, original = self.preprocess_image(img_in)
 
-            #start_time = time.monotonic()
-            detections = self.detect_fn(resized)
-            #end_time = time.monotonic()
-            #print(f"Elapsed time to invoke: {(end_time - start_time)*1000} miliseconds")
+        #start_time = time.monotonic()
+        detections = self.detect_fn(resized)
+        #end_time = time.monotonic()
+        #print(f"Elapsed time to invoke: {(end_time - start_time)*1000} miliseconds")
 
-            detections_clean = self.clean_detections(detections)
-            return resized, original, detections_clean
+        detections_clean = self.clean_detections(detections)
+        #print("detections: ",detections_clean)
+        print("type:",type(detections_clean))
+        print("keys:",detections_clean.keys())
+
+        # return resized, original, detections_clean
+        return detections_clean
     
 
 

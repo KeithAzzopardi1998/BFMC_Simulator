@@ -23,7 +23,8 @@ from time import sleep
 import threading
 
 import Queue
-
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import tensorflow as tf
 tf.debugging.set_log_device_placement(True)
 
@@ -126,24 +127,32 @@ COLORS = np.random.randint(0, 255, size=(len(LABEL_DICT), 3), dtype="uint8")
 
 def getImage_od(img,obj_info):
 	# based on https://github.com/google-coral/pycoral/blob/master/examples/detect_image.py
+	print("getImage_od: type is",type(obj_info))
 	if not obj_info:
 		#print('list was empty')
 		return img
 	else:
-		for obj in obj_info:
-			#print(obj)
-			w = img.shape[1]
-			h = img.shape[0]
-			ymin, xmin, ymax, xmax = obj['bounding_box']
-			xmin = int(xmin * w)
-			xmax = int(xmax * w)
-			ymin = int(ymin * h)
-			ymax = int(ymax * h)
+		threshold = 0.3
+		for i, score in enumerate(obj_info['detection_scores']):
+			if score >= threshold:
+				w = img.shape[1]
+				h = img.shape[0]
+				ymin, xmin, ymax, xmax = obj_info['detection_boxes'][i]
+				xmin = int(xmin * w)
+				xmax = int(xmax * w)
+				ymin = int(ymin * h)
+				ymax = int(ymax * h)
 
-			cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
-			y = ymin - 15 if ymin - 15 > 15 else ymin + 15
-			cv2.putText(img,"{}: {:.2f}%".format(LABEL_DICT[obj['class_id']], obj['score'] * 100),
-						(xmin, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+				idx = obj_info['detection_classes'][i] - 1
+
+				# Skip the background
+				if idx >= len(LABEL_DICT):
+					continue
+
+				cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
+				y = ymin - 15 if ymin - 15 > 15 else ymin + 15
+				cv2.putText(img,"{}: {:.2f}%".format(LABEL_DICT[idx], score * 100),
+							(xmin, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
 
 	return img
 
@@ -213,9 +222,10 @@ while 1:
 	if not od_thread.isAlive():
 		print("od thread has finished running ... updating and restarting ...")
 		objects = od_q.get()
+		print("after reading from queue, type is:",type(objects))
 		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
 		od_thread.start()
-	print("objects:",objects)
+	#print("objects:",objects)
 	img_od = getImage_od(img_pp.copy(),objects)
 
 	#visualize the detections
