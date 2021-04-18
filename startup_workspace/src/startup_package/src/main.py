@@ -13,6 +13,7 @@ from bfmclib.trafficlight_s import TLColor, TLLabel, TrafficLight
 from lane_detection import LaneDetector
 from object_detection import ObjectDetector
 from autonomous_controller import AutonomousController
+from path_planning import PathPlanner
 
 import rospy
 import cv2
@@ -113,7 +114,7 @@ LABEL_DICT = {0: 'bike',
                 7.0: 'ts_priority',
                 7.1: 'ts_stop',
                 7.2: 'ts_no_entry',
-                7.3: 'ts_one_way',
+                7.3: 'ts_one_wa_file. close()ay',
                 7.4: 'ts_crossing',
                 7.5: 'ts_fw_entry',
                 7.6: 'ts_fw_exit',
@@ -163,6 +164,9 @@ print("Traffic lights listener")
 
 gps = Gps()
 print("Gps loaded")
+
+plan = PathPlanner()
+print("Path Planner loaded")
 
 bno = BNO055()
 print("BNO055 loaded")
@@ -244,6 +248,15 @@ while 1:
 	if key == ord('q'):
 		cv2.destroyAllWindows()
 		break
+
+	#update the current location
+	gps_data = gps.getGpsData()
+	print("read the following from GPS:",gps_data)
+	#if gps_data:
+	#	coord_complex = gps_data['coor'][0]
+	#	x = coord_complex.real
+	#	y = coord_complex.imag
+	#	plan.updatePathProgress(x,y)
 
 	#use the detected lanes and objects to make decisions
 	#steering = random.uniform(-25,25)
