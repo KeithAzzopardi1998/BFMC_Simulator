@@ -11,12 +11,16 @@ class ObjectDetector:
         print("tensorflow GPUs:",tf.config.list_physical_devices('GPU'))
         
         with tf.device('/GPU:0'):
-            #Object Detection interpreter
-            self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
-            self.od_interpreter.allocate_tensors()
-            self.od_input_details = self.od_interpreter.get_input_details()
-            self.threshold = 0.3
-
+            #Object Detection interpreter (TFLITE)
+            # self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
+            # self.od_interpreter.allocate_tensors()
+            # self.od_input_details = self.od_interpreter.get_input_details()
+            # self.threshold = 0.3
+            #start_time = time.monotonic()
+            self.detect_fn = tf.saved_model.load("/simulator/startup_workspace/src/startup_package/src/models/saved_model")
+            #end_time = time.monotonic()
+            #print(f"Elapsed time to load model: {(end_time - start_time)*1000} miliseconds")
+            
             #Traffic Sign Recognition interpreter
             self.tsr_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_recognition_quant.tflite')
             self.tsr_interpreter.allocate_tensors()
@@ -89,7 +93,7 @@ class ObjectDetector:
         }
         return result
 
-    def objectDetection(self, img_in):
+    def objectDetection_tflite(self, img_in):
         with tf.device('/GPU:0'):
             input_shape = self.od_input_details[0]['shape']
             _, height, width, _ = input_shape
@@ -122,6 +126,49 @@ class ObjectDetector:
 
             return results
 
+    ############################## OBJECT DETECTION WITHOUT TFLITE ##############################
+    def preprocess_image(self,img_in):
+        with tf.device('/GPU:0'):
+            HEIGHT = 320
+            WIDTH = 320
+            img = tf.convert_to_tensor(img_in)
+            original_image = img
+            img = tf.image.convert_image_dtype(img, tf.float32)
+            resized_img = tf.image.resize(img, (HEIGHT, WIDTH))
+            resized_img = resized_img[tf.newaxis, :]
+            resized_img = tf.image.convert_image_dtype(resized_img, tf.uint8)
+            return resized_img, original_image
+
+    def clean_detections(self,detections):
+        # All outputs are batches tensors.
+        # Convert to numpy arrays, and take index [0] to remove the batch dimension.
+        # We're only interested in the first num_detections.
+        with tf.device('/GPU:0'):
+            num_detections = int(detections.pop('num_detections'))
+            detections = {key: value[0, :num_detections].numpy()
+                            for key, value in detections.items()}
+            detections['num_detections'] = num_detections
+
+            # detection_classes should be ints.
+            detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
+
+            return detections
+
+    def objectDetection(self,img_in):
+        with tf.device('/GPU:0'):
+            resized, original = self.preprocess_image(img_in)
+
+            #start_time = time.monotonic()
+            detections = self.detect_fn(resized)
+            #end_time = time.monotonic()
+            #print(f"Elapsed time to invoke: {(end_time - start_time)*1000} miliseconds")
+
+            detections_clean = self.clean_detections(detections)
+            return resized, original, detections_clean
+    
+
+
+    ############################################################################################# 
     def signRecognition(self,img_in):
         with tf.device('/GPU:0'):
             input_shape = self.tsr_input_details[0]['shape']
