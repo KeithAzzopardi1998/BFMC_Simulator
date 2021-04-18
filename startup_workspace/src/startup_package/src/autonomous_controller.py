@@ -15,9 +15,12 @@ class AutonomousController:
         #TODO get these from the XML path planner
         self.actions = ["right",
                         "left",
-                        "left",
                         "right",
-                        "straight"]
+                        "left",
+                        "left",
+                        "straight",
+                        "left"
+                        ]
         self.action_counter = 0
 
 
@@ -96,7 +99,7 @@ class AutonomousController:
         if self.index % self.angles_to_store == 0 and self.index >= 20:
             self.index = 0
 
-        self.car.drive(0.1, weighted_angle)
+        self.car.drive(0.15, weighted_angle)
         time.sleep(0.1)
     
     def calculate_steering_angle(self,lane_left,lane_right,frame_size):
