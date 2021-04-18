@@ -180,7 +180,7 @@ ld = LaneDetector()
 print("Lane Detector created")
 
 od = ObjectDetector()
-od_q = Queue.Queue()
+#od_q = Queue.Queue()
 print("Object Detector created")
 
 con = AutonomousController()
@@ -213,19 +213,20 @@ while 1:
 	#lane_preprocessed_img = img_pp.copy()
 
 	#detect objects
-	if not od_thread:
-		print("starting OD thread")
-		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
-		od_thread.start()
-	# if the OD thread has finished working, update the detections and
-	# start th thread again
-	if not od_thread.isAlive():
-		print("od thread has finished running ... updating and restarting ...")
-		objects = od_q.get()
-		print("after reading from queue, type is:",type(objects))
-		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
-		od_thread.start()
+	# if not od_thread:
+	# 	print("starting OD thread")
+	# 	od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
+	# 	od_thread.start()
+	# # if the OD thread has finished working, update the detections and
+	# # start th thread again
+	# if not od_thread.isAlive():
+	# 	print("od thread has finished running ... updating and restarting ...")
+	# 	objects = od_q.get()
+	# 	print("after reading from queue, type is:",type(objects))
+	# 	od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
+	# 	od_thread.start()
 	#print("objects:",objects)
+	objects = od.getObjects(img_pp.copy())
 	img_od = getImage_od(img_pp.copy(),objects)
 
 	#visualize the detections

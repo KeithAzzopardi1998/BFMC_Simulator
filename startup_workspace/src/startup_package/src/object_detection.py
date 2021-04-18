@@ -29,7 +29,7 @@ class ObjectDetector:
             self.tsr_input_details = self.tsr_interpreter.get_input_details()
             self.tsr_output_details = self.tsr_interpreter.get_output_details()
     
-    def getObjects(self,img,q):
+    def getObjects(self,img):
         
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -61,10 +61,11 @@ class ObjectDetector:
         # end = time.clock()
         # print("object detection took", end-start)
 
+        return obj_list
         #since this is called from a thread,
         #we cannot return obj_list, so we
         #add it to the queue
-        q.put(obj_list)
+        #q.put(obj_list)
         #print("going to return:", obj_list)
 
     def set_input_od(self, image):
