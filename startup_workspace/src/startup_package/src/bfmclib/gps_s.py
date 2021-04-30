@@ -44,4 +44,5 @@ class Gps:
         self._rot = complex(cmath.cos(self._wz), cmath.sin(self._wz))
 
         self.gps_data = {'timestamp': (rospy.get_rostime().secs *1e9 + rospy.get_rostime().nsecs)/1e9 , 'coor': (self._pose, self._rot)}
+        # print("GPS callback : updated value to ",self.gps_data)
 

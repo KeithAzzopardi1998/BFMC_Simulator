@@ -115,6 +115,8 @@ class TrafficLight:
         if msg.id == TLLabel.TL_EAST:
             self.TL3_state = msg.state
 
+        # print("TL callback : updated values to ",(self.TL0_state,self.TL1_state,self.TL2_state,self.TL3_state))
+
     def _getStrState(self, int_state):
         """
 

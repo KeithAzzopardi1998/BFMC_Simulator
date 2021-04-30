@@ -269,7 +269,8 @@ while 1:
 	#	x = coord_complex.real
 	#	y = coord_complex.imag
 	#	plan.updatePathProgress(x,y)
-
+	tl_data = sem.getTL0State()
+	print("read the following from TL listener:",tl_data)
 	#use the detected lanes and objects to make decisions
 	#steering = random.uniform(-25,25)
 	# steering = 0
