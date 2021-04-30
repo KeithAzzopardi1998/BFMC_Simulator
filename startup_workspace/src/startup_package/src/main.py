@@ -105,29 +105,30 @@ def getImage_ld(image_in, lane_info, intersection_y):
 
 # ===================================== OBJECT DETECTION VISUALIZATION ===============================
 LABEL_DICT = {0: 'bike',
-                1.0: 'bus',
-                2.0: 'car',
-                3.0: 'motor',
-                4.0: 'person',
-                5.0: 'rider',
-                6.0: 'traffic_light',
-                7.0: 'ts_priority',
-                7.1: 'ts_stop',
-                7.2: 'ts_no_entry',
-                7.3: 'ts_one_way',
-                7.4: 'ts_crossing',
-                7.5: 'ts_fw_entry',
-                7.6: 'ts_fw_exit',
-                7.7: 'ts_parking',
-                7.8: 'ts_roundabout',
-                8.0: 'train',
-                9.0: 'truck'
+                10: 'bus',
+                20: 'car',
+                30: 'motor',
+                40: 'person',
+                50: 'rider',
+                60: 'traffic_light',
+                70: 'ts_priority',
+                71: 'ts_stop',
+                72: 'ts_no_entry',
+                73: 'ts_one_way',
+                74: 'ts_crossing',
+                75: 'ts_fw_entry',
+                76: 'ts_fw_exit',
+                77: 'ts_parking',
+                78: 'ts_roundabout',
+                80: 'train',
+                90: 'truck'
             }
+
 COLORS = np.random.randint(0, 255, size=(len(LABEL_DICT), 3), dtype="uint8")
 
 def getImage_od(img,obj_info):
 	# based on https://github.com/google-coral/pycoral/blob/master/examples/detect_image.py
-	print("getImage_od: type is",type(obj_info))
+	#print("getImage_od: type is",type(obj_info))
 	if not obj_info:
 		#print('list was empty')
 		return img
@@ -143,11 +144,11 @@ def getImage_od(img,obj_info):
 				ymin = int(ymin * h)
 				ymax = int(ymax * h)
 
-				idx = obj_info['detection_classes'][i] - 1
-
+				idx = int(obj_info['detection_classes'][i]*10)
+				#print("idx has type",type(idx))
 				# Skip the background
-				if idx >= len(LABEL_DICT):
-					continue
+				#if idx >= len(LABEL_DICT):
+				#	continue
 
 				cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
 				y = ymin - 15 if ymin - 15 > 15 else ymin + 15

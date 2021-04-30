@@ -10,18 +10,10 @@ import Queue
 
 class ObjectDetector:
     def __init__(self):
-        print("tensorflow GPUs:",tf.config.list_physical_devices('GPU'))
+        # print("tensorflow GPUs:",tf.config.list_physical_devices('GPU'))
         
         with tf.device('/GPU:0'):
-            #Object Detection interpreter (TFLITE)
-            # self.od_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_detector_quant_4.tflite')
-            # self.od_interpreter.allocate_tensors()
-            # self.od_input_details = self.od_interpreter.get_input_details()
-            # self.threshold = 0.3
-            #start_time = time.monotonic()
             self.detect_fn = tf.saved_model.load("/simulator/startup_workspace/src/startup_package/src/models/saved_model")
-            #end_time = time.monotonic()
-            #print(f"Elapsed time to load model: {(end_time - start_time)*1000} miliseconds")
             
             #Traffic Sign Recognition interpreter
             self.tsr_interpreter = tf.lite.Interpreter(model_path='/simulator/startup_workspace/src/startup_package/src/models/object_recognition_quant.tflite')
@@ -38,35 +30,27 @@ class ObjectDetector:
 
         start = time.clock()  
         obj_list = self.objectDetection(img_bright)
-        print("finished object detection with type",type(obj_list))
 
-        # #looping through the list of objects, and updating
-        # #the class ID of any traffic signs
-        # for o in obj_list:
-        #     #the main OD model uses class 7 for traffic signs
-        #     if o['class_id']== 7.0:
-        #         #grab the part of the image containing the sign
-        #         w = img.shape[1]
-        #         h = img.shape[0]
-        #         ymin, xmin, ymax, xmax = o['bounding_box']
-        #         xmin = int(xmin * w)
-        #         xmax = int(xmax * w)
-        #         ymin = int(ymin * h)
-        #         ymax = int(ymax * h)
-        #         roi = img_bright[ymin:ymax, xmin:xmax]
-        #         #run the traffic sign recognition function,
-        #         #which returns the new class ID
-        #         o['class_id'] = self.signRecognition(roi)
-        # 
-        # end = time.clock()
-        # print("object detection took", end-start)
+        threshold=0.3
+        for i, score in enumerate(obj_list['detection_scores']):
+            if score >= threshold:
+                w = img.shape[1]
+                h = img.shape[0]
+                ymin, xmin, ymax, xmax = obj_list['detection_boxes'][i]
+                xmin = int(xmin * w)
+                xmax = int(xmax * w)
+                ymin = int(ymin * h)
+                ymax = int(ymax * h)
+
+                # TF classes start from 1, ours start from 0
+                obj_list['detection_classes'][i] = obj_list['detection_classes'][i] - 1.0
+                roi = img_bright[ymin:ymax, xmin:xmax]
+                #run the traffic sign recognition function,
+                #which returns the new class ID
+                obj_list['detection_classes'][i] = self.signRecognition(roi)
+
 
         return obj_list
-        #since this is called from a thread,
-        #we cannot return obj_list, so we
-        #add it to the queue
-        #q.put(obj_list)
-        #print("going to return:", obj_list)
 
     def set_input_od(self, image):
         with tf.device('/GPU:0'):
@@ -152,7 +136,7 @@ class ObjectDetector:
         detections['num_detections'] = num_detections
 
         # detection_classes should be ints.
-        detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
+        # detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
 
         return detections
 
@@ -162,14 +146,9 @@ class ObjectDetector:
         #start_time = time.monotonic()
         detections = self.detect_fn(resized)
         #end_time = time.monotonic()
-        #print(f"Elapsed time to invoke: {(end_time - start_time)*1000} miliseconds")
 
         detections_clean = self.clean_detections(detections)
-        #print("detections: ",detections_clean)
-        print("type:",type(detections_clean))
-        print("keys:",detections_clean.keys())
 
-        # return resized, original, detections_clean
         return detections_clean
     
 

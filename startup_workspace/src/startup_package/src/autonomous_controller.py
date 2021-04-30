@@ -19,7 +19,7 @@ class AutonomousController:
                         "left",
                         "left",
                         "straight",
-                        "left"
+                        "right"
                         ]
         self.action_counter = 0
 
