@@ -24,7 +24,8 @@ from time import sleep
 import threading
 
 import Queue
-
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import tensorflow as tf
 tf.debugging.set_log_device_placement(True)
 
@@ -105,46 +106,55 @@ def getImage_ld(image_in, lane_info, intersection_y):
 
 # ===================================== OBJECT DETECTION VISUALIZATION ===============================
 LABEL_DICT = {0: 'bike',
-                1.0: 'bus',
-                2.0: 'car',
-                3.0: 'motor',
-                4.0: 'person',
-                5.0: 'rider',
-                6.0: 'traffic_light',
-                7.0: 'ts_priority',
-                7.1: 'ts_stop',
-                7.2: 'ts_no_entry',
-                7.3: 'ts_one_wa_file. close()ay',
-                7.4: 'ts_crossing',
-                7.5: 'ts_fw_entry',
-                7.6: 'ts_fw_exit',
-                7.7: 'ts_parking',
-                7.8: 'ts_roundabout',
-                8.0: 'train',
-                9.0: 'truck'
+                10: 'bus',
+                20: 'car',
+                30: 'motor',
+                40: 'person',
+                50: 'rider',
+                60: 'traffic_light',
+                70: 'ts_priority',
+                71: 'ts_stop',
+                72: 'ts_no_entry',
+                73: 'ts_one_way',
+                74: 'ts_crossing',
+                75: 'ts_fw_entry',
+                76: 'ts_fw_exit',
+                77: 'ts_parking',
+                78: 'ts_roundabout',
+                80: 'train',
+                90: 'truck'
             }
+
 COLORS = np.random.randint(0, 255, size=(len(LABEL_DICT), 3), dtype="uint8")
 
 def getImage_od(img,obj_info):
 	# based on https://github.com/google-coral/pycoral/blob/master/examples/detect_image.py
+	#print("getImage_od: type is",type(obj_info))
 	if not obj_info:
 		#print('list was empty')
 		return img
 	else:
-		for obj in obj_info:
-			#print(obj)
-			w = img.shape[1]
-			h = img.shape[0]
-			ymin, xmin, ymax, xmax = obj['bounding_box']
-			xmin = int(xmin * w)
-			xmax = int(xmax * w)
-			ymin = int(ymin * h)
-			ymax = int(ymax * h)
+		threshold = 0.3
+		for i, score in enumerate(obj_info['detection_scores']):
+			if score >= threshold:
+				w = img.shape[1]
+				h = img.shape[0]
+				ymin, xmin, ymax, xmax = obj_info['detection_boxes'][i]
+				xmin = int(xmin * w)
+				xmax = int(xmax * w)
+				ymin = int(ymin * h)
+				ymax = int(ymax * h)
 
-			cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
-			y = ymin - 15 if ymin - 15 > 15 else ymin + 15
-			cv2.putText(img,"{}: {:.2f}%".format(LABEL_DICT[obj['class_id']], obj['score'] * 100),
-						(xmin, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+				idx = int(obj_info['detection_classes'][i]*10)
+				#print("idx has type",type(idx))
+				# Skip the background
+				#if idx >= len(LABEL_DICT):
+				#	continue
+
+				cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
+				y = ymin - 15 if ymin - 15 > 15 else ymin + 15
+				cv2.putText(img,"{}: {:.2f}%".format(LABEL_DICT[idx], score * 100),
+							(xmin, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
 
 	return img
 
@@ -175,7 +185,7 @@ ld = LaneDetector()
 print("Lane Detector created")
 
 od = ObjectDetector()
-od_q = Queue.Queue()
+#od_q = Queue.Queue()
 print("Object Detector created")
 
 con = AutonomousController()
@@ -208,18 +218,20 @@ while 1:
 	#lane_preprocessed_img = img_pp.copy()
 
 	#detect objects
-	if not od_thread:
-		print("starting OD thread")
-		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
-		od_thread.start()
-	# if the OD thread has finished working, update the detections and
-	# start th thread again
-	if not od_thread.isAlive():
-		print("od thread has finished running ... updating and restarting ...")
-		objects = od_q.get()
-		od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
-		od_thread.start()
-	print("objects:",objects)
+	# if not od_thread:
+	# 	print("starting OD thread")
+	# 	od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
+	# 	od_thread.start()
+	# # if the OD thread has finished working, update the detections and
+	# # start th thread again
+	# if not od_thread.isAlive():
+	# 	print("od thread has finished running ... updating and restarting ...")
+	# 	objects = od_q.get()
+	# 	print("after reading from queue, type is:",type(objects))
+	# 	od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
+	# 	od_thread.start()
+	#print("objects:",objects)
+	objects = od.getObjects(img_pp.copy())
 	img_od = getImage_od(img_pp.copy(),objects)
 
 	#visualize the detections
