@@ -185,19 +185,34 @@ ld = LaneDetector()
 print("Lane Detector created")
 
 od = ObjectDetector()
-#od_q = Queue.Queue()
 print("Object Detector created")
 
 con = AutonomousController()
 print("AutonomousController created")
 
-#car.drive(-0.1, 0.0)
-#sleep(3)
+#creating a thread for updating the current path progress
+def updateCurrentLocation():
+	while True:
+		try:
+			#update the current location
+			gps_data = gps.getGpsData()
+			if gps_data:
+				coord_complex = gps_data['coor'][0]
+				x = coord_complex.real
+				y = coord_complex.imag
+				#print("gps position: (%.3f,%.3f)"%(x,y))
+				plan.updatePathProgress(x,y)
+				sleep(0.5)
+		except Exception as e:
+			print("Error updating path progress:",e)
+
+gps_thread = threading.Thread(target=updateCurrentLocation, name="gps_thread", args=())
+gps_thread.daemon = True
+gps_thread.start()
 
 steering = 0.0
 speed = 0.0
 
-od_thread = None
 objects = []
 while 1:
 	#raw image
@@ -217,20 +232,6 @@ while 1:
 	#img_ld = img_pp.copy()
 	#lane_preprocessed_img = img_pp.copy()
 
-	#detect objects
-	# if not od_thread:
-	# 	print("starting OD thread")
-	# 	od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
-	# 	od_thread.start()
-	# # if the OD thread has finished working, update the detections and
-	# # start th thread again
-	# if not od_thread.isAlive():
-	# 	print("od thread has finished running ... updating and restarting ...")
-	# 	objects = od_q.get()
-	# 	print("after reading from queue, type is:",type(objects))
-	# 	od_thread = threading.Thread(target=od.getObjects, name="od_thread", args=(img_pp.copy(),od_q))
-	# 	od_thread.start()
-	#print("objects:",objects)
 	objects = od.getObjects(img_pp.copy())
 	img_od = getImage_od(img_pp.copy(),objects)
 
@@ -261,22 +262,7 @@ while 1:
 		cv2.destroyAllWindows()
 		break
 
-	#update the current location
-	gps_data = gps.getGpsData()
-	print("read the following from GPS:",gps_data)
-	#if gps_data:
-	#	coord_complex = gps_data['coor'][0]
-	#	x = coord_complex.real
-	#	y = coord_complex.imag
-	#	plan.updatePathProgress(x,y)
-	tl_data = sem.getTL0State()
-	print("read the following from TL listener:",tl_data)
 	#use the detected lanes and objects to make decisions
-	#steering = random.uniform(-25,25)
-	# steering = 0
-	# speed = 0.1
-	# print("Sending move with speed %d, steering %d"%(speed,steering))
-	# car.drive(speed, steering)
 	con.chooseRoutine(lanes, intersection, objects, (img_in.shape[0],img_in.shape[1]))
 
 
